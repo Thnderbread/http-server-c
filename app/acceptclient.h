@@ -2,6 +2,6 @@
 #define ACCEPTCLIENT_H_
 
 /*Accept new client and handle the request*/
-int accept_client();
+int accept_client(int *client_fd);
 
 #endif
