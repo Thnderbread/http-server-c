@@ -6,6 +6,11 @@ return 0 if success
 return 1 if some error happened, 500 class http error
 return 2 if something like 404 is being returned
 */
-int handle_get(char *ept, char *response_buffer);
+int handle_get(
+  char *ept,
+  char *response_body,
+  char *response_header,
+  int response_header_size,
+  int response_body_size);
 
 #endif
