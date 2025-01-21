@@ -1,0 +1,7 @@
+BasedOnStyle: Mozilla
+AlignAfterOpenBracket: AlwaysBreak
+BinPackParameters: false
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+BreakBeforeBraces: Attach
+PointerAlignment: Right
