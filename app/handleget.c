@@ -1,4 +1,5 @@
 #include "handleget.h"
+#include "cJSON.h"
 #include <errno.h>
 #include <limits.h>
 #include <netdb.h>
@@ -17,65 +18,126 @@ const char kPathSeparator =
   '/';
 #endif
 
-/*Handle the http request
-return 0 if success
-return 1 if some error happened, 500 class http error
-return 2 if something like 404 is being returned
-*/
-int handle_get(
+int handle_json_request(
   char *ept,
-  char *response_body,
-  char *response_header,
-  int response_body_size,
-  int response_header_size) {
+  char *cwd,
+  int *http_status_code,
+  char *content_type,
+  char *response_body) {
+  // tokenize url endpoint to determine requested resource
+  char *tokens[5];
+  char resource_copy[strlen(ept) + 1]; // for strtok
+  strcpy(resource_copy, ept);
 
-  char *ept_dupe = strdup(ept); // changing to index.html if ept is '/'
-  // handle page requests
-  printf("GET Handler triggered, requested endpoint: %s\n", ept_dupe);
-  // handling JSON api epts
-  if (strstr(ept_dupe, "/api/")) {
-    // if we handle json
-    snprintf(
-      response_header,
-      response_header_size,
-      "HTTP/1.1 501 NOT IMPLEMENTED\r\nConnection: close\r\n\r\n");
+  int count = 0; // only 3 tokens (api, foo, and the resource id)
+  char *line = strtok(resource_copy, "/");
+
+  while (line != NULL) {
+    tokens[count] = line;
+
+    line = strtok(NULL, "/");
+    count++;
+  }
+
+  // reconstruct arr as a path w/ path seps
+  char db_path[PATH_MAX + 1];
+  snprintf(
+    db_path,
+    sizeof(db_path),
+    "%s%cdb%c%s.json",
+    cwd,
+    kPathSeparator,
+    kPathSeparator,
+    tokens[1]);
+
+  char resolved_path[sizeof(db_path)];
+  if (realpath(db_path, resolved_path) == NULL) {
+    printf("Created path: %s | resolved path: %s\n", db_path, resolved_path);
+    perror("realpath() - db");
+    *http_status_code = 400;
+    return 2;
+  }
+
+  // Read json data
+  FILE *f;
+  f = fopen(resolved_path, "r");
+
+  if (f == NULL) {
+    perror("fopen()");
+    *http_status_code = 404;
+    return 2;
+  }
+
+  struct stat stats;
+  fstat(fileno(f), &stats);
+
+  char json_buffer[1024];
+  int len = fread(json_buffer, 1, sizeof(json_buffer), f);
+  fclose(f);
+
+  // Parse raw json output from file
+  cJSON *json = cJSON_Parse(json_buffer);
+  if (json == NULL) {
+    const char *error = cJSON_GetErrorPtr();
+    if (error != NULL) {
+      fprintf(stderr, "JSON Parse error: %s\n", error);
+    }
+    *http_status_code = 500;
+
+    cJSON_Delete(json);
     return 1;
   }
 
+  // ? curl -v http://localhost:1337/api/users/1234 --output -
+  cJSON *user = NULL;
+  user = cJSON_GetObjectItem(json, tokens[2]); // tokens[2] holds ept id
+  char *user_json = cJSON_PrintUnformatted(user);
+
+  if (user_json == NULL) {
+    cJSON_Delete(json);
+    *http_status_code = 404;
+    return 2;
+  }
+
+  // write json to response body
+  snprintf(response_body, strlen(user_json) + 1, "%s", user_json);
+  cJSON_free(user_json);
+  cJSON_Delete(json);
+
+  snprintf(
+    content_type,
+    strlen("Content-Type: application/json") + 1,
+    "Content-Type: application/json");
+  *http_status_code = 200;
+  return 0;
+}
+
+int handle_static_request(
+  char *ept,
+  char *cwd,
+  int *http_status_code,
+  char *content_type,
+  char *response_body) {
   // handle static file requests
-  char cwd[PATH_MAX]; // get cwd for dist directory
-  if (getcwd(cwd, sizeof(cwd)) == NULL) {
-    perror("getcwd()");
-    snprintf(
-      response_body,
-      response_body_size,
-      "HTTP/1.1 500 INTERNAL SERVER ERROR\r\nConnection: close\r\n\r\n");
-    return 1;
-  }
-
   // request index page if requested path is '/'
-  ept_dupe = strcmp(ept_dupe, "/") == 0 ? "/index.html" : ept_dupe;
+  const char *resource = strcmp(ept, "/") == 0 ? "/index.html" : ept;
 
   // construct path to dist dir
-  char *dist_dirname = "dist";
+  const char *dist_dirname = "dist";
   char dist_dir[PATH_MAX + 1];
   snprintf(
     dist_dir,
     PATH_MAX + 1,
-    "%s%c%s%s",
+    "%s%cdist%s",
     cwd,
     kPathSeparator,
-    dist_dirname,
-    ept_dupe);
+    resource); // ept_dupe has a '/' at the front of it
 
   // look for the file to serve
   char resolved_path[PATH_MAX];
   if (realpath(dist_dir, resolved_path) == NULL) {
-    perror("realpath()");
-    snprintf(
-      response_header,
-      response_header_size,
-      "HTTP/1.1 404 NOT FOUND\r\nConnection: close\r\n\r\n");
+    perror("realpath() - dist");
+    *http_status_code = 404;
     return 2;
   }
 
@@ -84,10 +146,7 @@ int handle_get(
 
   if (f == NULL) {
     perror("fopen()");
-    snprintf(
-      response_header,
-      response_header_size,
-      "HTTP/1.1 404 NOT FOUND\r\nConnection: close\r\n\r\n");
+    *http_status_code = 404;
     return 2;
   }
 
@@ -97,9 +156,41 @@ int handle_get(
   size_t bytesread;
   do {
     bytesread =
-      fread(response_body, sizeof(char), stats.st_size / sizeof(char), f);
+      fread(response_body, sizeof(char), stats.st_size / sizeof(char) + 1, f);
   } while (bytesread > 0);
 
   fclose(f);
+  snprintf(
+    content_type,
+    strlen("Content-Type: text/html; charset=utf-8") / sizeof(char) + 1,
+    "Content-Type: text/html; charset=utf-8");
+  *http_status_code = 200;
   return 0;
+}
+// Handle the http request
+// return 0 if success
+// return 1 if some error happened, 500 class http error
+// return 2 if something like 404 is being returned
+int handle_get(
+  char *ept,
+  char *content_type,
+  char *response_body,
+  int *http_status_code,
+  int response_body_size) {
+  printf("GET Handler triggered, requested endpoint: %s\n", ept);
+
+  char cwd[1024];
+  if (getcwd(cwd, sizeof(cwd)) == NULL) {
+    perror("getcwd()");
+    *http_status_code = 500;
+    return 1;
+  }
+
+  if (strstr(ept, "/api/")) {
+    return handle_json_request(
+      ept, cwd, http_status_code, content_type, response_body);
+  }
+
+  return handle_static_request(
+    ept, cwd, http_status_code, content_type, response_body);
 }

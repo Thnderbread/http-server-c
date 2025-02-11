@@ -7,12 +7,17 @@
     "types.h": "c",
     "handlerequest.h": "c",
     "stdio.h": "c",
-    "stdlib.h": "c"
+    "stdlib.h": "c",
+    "handleget.h": "c",
+    "utils.h": "c"
   },
   "editor.renderWhitespace": "selection",
   "editor.guides.indentation": true,
   "editor.experimentalWhitespaceRendering": "svg",
   "files.trimTrailingWhitespace": true,
   "editor.tabSize": 2,
-  "editor.detectIndentation": false
+  "editor.detectIndentation": false,
+  "C_Cpp.codeAnalysis.clangTidy.checks.disabled": [
+    "clang-diagnostic-implicit-function-declaration"
+  ]
 }

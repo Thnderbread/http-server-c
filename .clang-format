@@ -5,3 +5,4 @@ AlwaysBreakAfterDefinitionReturnType: None
 AlwaysBreakAfterReturnType: None
 BreakBeforeBraces: Attach
 PointerAlignment: Right
+SortIncludes: Never

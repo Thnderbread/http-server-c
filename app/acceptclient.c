@@ -28,7 +28,7 @@ int accept_client(int *client_fd) {
     User-Agent: curl/8.4.0
     Accept: * /*
   */
-  int i, j = 0;
+  int i = 0, j = 0;
   char req_copy[1024];
   char *content_type = NULL;
   char *line, *token, *ept, *method, *http_ver;
@@ -38,7 +38,7 @@ int accept_client(int *client_fd) {
   line = strtok(req_copy, "\r\n");
   while (line != NULL) {
     // first item in an HTTP 1.1 request is the request-line
-    // containing the method, endpoint, and http version in that order
+    // containing the method, endpoint, aynd http version in that order
     if (i == 0) {
       // obtain the endpoint, method, and http ver
       // from the request line
@@ -66,5 +66,7 @@ int accept_client(int *client_fd) {
     i++;
   }
   printf("Req: %s\n", req_buf);
-  return handle_request(ept, method, http_ver, client_fd);
+  handle_request(ept, method, http_ver, client_fd);
+  printf("After handle_request\n");
+  return 0;
 }

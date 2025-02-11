@@ -8,9 +8,9 @@ return 2 if something like 404 is being returned
 */
 int handle_get(
   char *ept,
+  char *content_type,
   char *response_body,
-  char *response_header,
-  int response_header_size,
+  int *http_status_code,
   int response_body_size);
 
 #endif
