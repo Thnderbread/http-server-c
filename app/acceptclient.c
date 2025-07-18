@@ -31,11 +31,11 @@ int accept_client(int *client_fd) {
   int i = 0, j = 0;
   char req_copy[1024];
   char *content_type = NULL;
-  char *line, *token, *ept, *method, *http_ver;
+  char *line, *token, *ept, *method, *http_ver, *req_body;
 
   strcpy(req_copy, req_buf);
 
-  line = strtok(req_copy, "\r\n");
+  line = strtok(req_copy, "\r\n\r\n");
   while (line != NULL) {
     // first item in an HTTP 1.1 request is the request-line
     // containing the method, endpoint, aynd http version in that order
@@ -56,17 +56,37 @@ int accept_client(int *client_fd) {
         j++;
       }
     }
+    printf("Line: %s\n\n", line);
+    // ! Need to extract the request body
+    // ! Kinda half assed a solution so figure it out
 
     // extract the content type header
     if (strstr(line, "Content-Type") != NULL) {
       content_type = line;
     }
 
-    line = strtok(NULL, "\r\n");
+    // set body_on every iteration, it will be the body
+    // on the last iteration;
+    req_body = line;
+    line = strtok(NULL, "\r\n\r\n");
     i++;
   }
-  printf("Req: %s\n", req_buf);
+
+  printf("\nRbody: %s\n\n", req_body);
+  // request body
+  // i = 0;
+  // char *req_body_buf;
+  // strcpy(req_copy, req_buf);
+  // line = strtok(req_copy, "\r\n\r\n");
+
+  // while (line != NULL) {
+  //   printf("Line: %s\n\n", line);
+  //   req_body_buf = line;
+
+  //   line = strtok(NULL, "\r\n\r\n");
+  //   i++;
+  // }
+  // printf("\nReq: %s\n\n", req_buf);
   handle_request(ept, method, http_ver, client_fd);
-  printf("After handle_request\n");
   return 0;
 }

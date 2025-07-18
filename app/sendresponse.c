@@ -27,7 +27,6 @@ int send_response(
       response_body);
   } else {
     // POST, PUT, or DELETE requests, or failed requests only require headers
-    printf("Hello im here but shouldn't be\n");
     snprintf(
       response_buffer,
       sizeof(char) * (strlen(response_header)),
@@ -37,8 +36,6 @@ int send_response(
 
   int len = strlen(response_buffer), bytes_sent;
   bytes_sent = send(*client_fd, response_buffer, len * sizeof(char), 0);
-
-  printf("Bytes sent: %d\n", bytes_sent);
 
   if (bytes_sent == -1) {
     perror("send()");

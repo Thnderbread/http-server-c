@@ -38,17 +38,15 @@ int handle_request(char *ept, char *method, char *http_ver, int *client_fd) {
   } else if (strcmp(method, "POST") == 0) {
     /* POST handler function */
     printf("POST Handler triggered\n");
-    snprintf(
-      response_header,
-      response_header_size,
-      "HTTP/1.1 501 Not Implemented\r\n\r\n");
+    http_status_code = 501;
+    // snprintf(
+    //   response_header,
+    //   response_header_size,
+    //   "HTTP/1.1 501 Not Implemented\r\n\r\n");
   } else if (strcmp(method, "PUT") == 0) {
     /* PUT handler function */
     printf("PUT Handler triggered\n");
-    snprintf(
-      response_header,
-      response_header_size,
-      "HTTP/1.1 501 Not Implemented\r\n\r\n");
+    http_status_code = 501;
 
   } else if (strcmp(method, "DELETE") == 0) {
     /* DELETE handler function */
@@ -83,6 +81,5 @@ int handle_request(char *ept, char *method, char *http_ver, int *client_fd) {
   }
 
   close(*client_fd);
-  printf("Closed client fd\n");
   return 0;
 }

@@ -59,7 +59,6 @@ int main() {
     perror("couldn't accept() new connection");
   } else {
     accept_client(&client_fd);
-    printf("Here before death\n");
   }
 
   close(server_fd);
@@ -115,7 +114,7 @@ socket. Not large enough to accommodate a larger address like IPv6.
 /* valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes
  * --verbose --log-file=valgrind-out.txt ./a.out */
 
-// ! gcc pre-valgrind! (I forget what the -ggdb3 does.) :
+// ! gcc pre-valgrind! (I forget what the -ggdb3 does.):
 // gcc -ggdb3 app/*.c -o a.out
 
 // ! Address sanitizer! (fuck is that!):
